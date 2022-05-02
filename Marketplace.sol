@@ -75,8 +75,8 @@ contract Marketplace {
      */
 
     function removeUser() public {
-        NFTAddresses[users[msg.sender].index] = NFTAddresses[NFTAddresses.length - 1];
-        delete NFTAddresses[NFTAddresses.length - 1];
+        userAddresses[users[msg.sender].index] = userAddresses[userAddresses.length - 1];
+        userAddresses.pop();
         delete users[msg.sender];
     }
 
@@ -124,12 +124,12 @@ contract Marketplace {
         for (uint i = 0; i < NFTs[_NFTAddress].tokenIds.length; i++) {
             if (NFTs[_NFTAddress].tokenIds[i] == _tokenId) {
                 NFTs[_NFTAddress].tokenIds[i] = NFTs[_NFTAddress].tokenIds[NFTs[_NFTAddress].tokenIds.length];
-                delete NFTs[_NFTAddress].tokenIds[NFTs[_NFTAddress].tokenIds.length];
+                NFTs[_NFTAddress].tokenIds.pop();
             }
         }
         if (NFTs[_NFTAddress].tokenIds.length == 0) {
             NFTAddresses[NFTs[_NFTAddress].index] = NFTAddresses[NFTAddresses.length - 1];
-            delete NFTAddresses[NFTAddresses.length - 1];
+            NFTAddresses.pop();
             delete NFTs[_NFTAddress];
         }
     }
@@ -137,5 +137,5 @@ contract Marketplace {
     // --- User getters
 
     // --- NFT getters
-    
+
 }
