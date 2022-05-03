@@ -136,6 +136,26 @@ contract Marketplace {
 
     // --- User getters
 
+    function getNrOfUsers() public view returns(uint nrOfUsers_) {
+        nrOfUsers_ = userAddresses.length;
+    }
+
+    function getUsernameByIndex(uint _index) public view returns(string memory username_) {
+        username_ = users[userAddresses[_index]].username;
+    }
+
     // --- NFT getters
+
+    function getNrOfNFTs() public view returns(uint nrOfNFTs_) {
+        nrOfNFTs_ = NFTAddresses.length;
+    }
+
+    function getNrOfTokenIdsByIndexOfNFT(uint _NFTIndex) public view returns(uint nrOfTokenIds_) {
+        nrOfTokenIds_ = NFTs[NFTAddresses[_NFTIndex]].tokenIds.length;
+    }
+
+    function getNFTTokenIdByIndexes(uint _NFTIndex, uint _tokenIdIndex) public view returns(uint tokenId_) {
+        tokenId_ = NFTs[NFTAddresses[_NFTIndex]].tokenIds[_tokenIdIndex];
+    }
 
 }
