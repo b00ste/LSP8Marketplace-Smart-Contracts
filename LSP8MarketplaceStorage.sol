@@ -19,8 +19,6 @@ contract LSP8MarketplaceStorage {
     using EnumerableMap for EnumerableMap.AddressToUintMap;
 
     // --- Storage.
-
-    EnumerableSet.AddressSet private _users;
     mapping (address => EnumerableSet.Bytes32Set) private _sale;
     mapping (address => mapping (bytes32 => Prices)) private _prices;
     struct Prices {
@@ -35,16 +33,6 @@ contract LSP8MarketplaceStorage {
     }
 
     // --- Modifiers.
-
-    modifier userDoesNotExist {
-        require(!_users.contains(msg.sender), "User already exists.");
-        _;
-    }
-
-    modifier userExists {
-        require(_users.contains(msg.sender), "User does not exist.");
-        _;
-    }
 
     modifier senderOwnsLSP8(address LSP8Address, bytes32 tokenId) {
         require(
@@ -70,6 +58,22 @@ contract LSP8MarketplaceStorage {
         _;
     }
 
+    modifier LSP7PriceDoesNotExist(address LSP8Address, bytes32 tokenId, address LSP7Address) {
+        require(
+            !_prices[LSP8Address][tokenId].LSP7Addresses.contains(LSP7Address),
+            "There already exists a buyout price in this token. Try to change it."
+        );
+        _;
+    }
+
+    modifier LSP7PriceDoesExist(address LSP8Address, bytes32 tokenId, address LSP7Address) {
+        require(
+            _prices[LSP8Address][tokenId].LSP7Addresses.contains(LSP7Address),
+            "There is no buyout price in this token. Try to add one."
+        );
+        _;
+    }
+
     modifier sendEnoughLYX(address LSP8Address, bytes32 tokenId) {
         require(_prices[LSP8Address][tokenId].LYXAmount == msg.value);
         _;
@@ -84,37 +88,14 @@ contract LSP8MarketplaceStorage {
     }
 
     modifier sellerAcceptsToken(address LSP8Address, bytes32 tokenId, address LSP7Address) {
-        Prices storage _price = _prices[LSP8Address][tokenId];
-        for (uint i = 0; i < _price.LSP7Addresses.length(); i++) {
-            if (_price.LSP7Addresses.at(i) == LSP7Address) {
-                _;
-            }
-        }
-        revert("Seller does not accept this token.");
+        require(
+            _prices[LSP8Address][tokenId].LSP7Addresses.contains(LSP7Address),
+            "Seller does not accept this token."
+        );
+        _;
     }
 
     // --- Internal functionality.
-
-    // -- User functionality.
-
-    // Add user.
-    function _addUser(
-        address newUser
-    ) 
-        internal
-        userDoesNotExist
-    {
-        _users.add(newUser);
-    }
-
-    // Remove user.
-    function _removeUser(
-        address newUser
-    )
-        internal
-    {
-        _users.remove(newUser);
-    }
 
     // -- Sale functionality.
 
@@ -124,9 +105,6 @@ contract LSP8MarketplaceStorage {
         bytes32 tokenId
     )
         internal
-        userExists
-        senderOwnsLSP8(LSP8Address, tokenId)
-        LSP8NotOnSale(LSP8Address, tokenId)
     {
         _sale[LSP8Address].add(tokenId);
         ILSP8IdentifiableDigitalAsset(LSP8Address).authorizeOperator(address(this), tokenId);
@@ -138,9 +116,6 @@ contract LSP8MarketplaceStorage {
         bytes32 tokenId
     )
         internal
-        userExists
-        senderOwnsLSP8(LSP8Address, tokenId)
-        LSP8OnSale(LSP8Address, tokenId)
     {
         _sale[LSP8Address].remove(tokenId);
         ILSP8IdentifiableDigitalAsset(LSP8Address).revokeOperator(address(this), tokenId);
@@ -150,20 +125,43 @@ contract LSP8MarketplaceStorage {
 
     // - LYX Price functionality.
 
-    // Add LYX amount for buyout of an LSP8.
-    function _addLYXPrice(address LSP8Address, bytes32 tokenId, uint256 LYXAmount) internal {
+    // Add LYX buyout amount.
+    function _addLYXPrice(
+        address LSP8Address,
+        bytes32 tokenId,
+        uint256 LYXAmount
+    )
+        internal
+    {
         _prices[LSP8Address][tokenId].LYXAmount = LYXAmount;
     }
 
-    // Getter for LYX amout for buyout of an LSP8.    
-    function _returnLYXPrice(address LSP8Address, bytes32 tokenId) public view returns(uint256) {
+    // Remove LYX buyout amount.
+    function _removeLYXPrice(
+        address LSP8Address,
+        bytes32 tokenId
+    )
+        internal
+    {
+        delete _prices[LSP8Address][tokenId].LYXAmount;
+    }
+
+    // Getter for LYX buyout amount.    
+    function _returnLYXPrice(
+        address LSP8Address,
+        bytes32 tokenId
+    )
+        public
+        view
+        returns(uint256)
+    {
         return _prices[LSP8Address][tokenId].LYXAmount;
     }
 
     // - LSP7 Price functionality.
 
-    // Add LSP7 tokenAddresses and buyout amounts for an LSP8.
-    function _addLSP7Price(
+    // Add LSP7 tokenAddresses and buyout amounts.
+    function _addLSP7Prices(
         address LSP8Address,
         bytes32 tokenId,
         address[] memory LSP7Addresses,
@@ -178,9 +176,25 @@ contract LSP8MarketplaceStorage {
         }
     }
 
+    // Add LSP7 tokenAddresses and buyout amounts.
+    function _addLSP7PriceByAddress(
+        address LSP8Address,
+        bytes32 tokenId,
+        address LSP7Addresses,
+        uint256 LSP7Amount
+    )
+        internal
+    {
+        Prices storage _price = _prices[LSP8Address][tokenId];
+        _price.LSP7Addresses.add(LSP7Addresses);    
+        _price.LSP7Amounts.set(LSP7Addresses, LSP7Amount);
+    }
+
     /**
-     * Getter for LSP7 tokenAddresses and LSP8 buyout amounts. Returns two ordered arrays.
-     * First array is with tokenAddresses, the second one is with buyout amounts.
+     * Getter for LSP7 tokenAddresses and LSP8 buyout amounts.
+     * First array is with tokenAddresses.
+     * The second array is with buyout amounts.
+     * Returns two ordered arrays.
      */
     function _returnLSP7Prices(
         address LSP8Address,
@@ -214,8 +228,26 @@ contract LSP8MarketplaceStorage {
         return _prices[LSP8Address][tokenId].LSP7Amounts.get(LSP7Address);
     }
 
-    function _removeLSP8Prices(address LSP8Address, bytes32 tokenId) internal {
+    // Removes all LSP8 prices.
+    function _removeLSP8Prices(
+        address LSP8Address,
+        bytes32 tokenId
+    )
+        internal
+    {
         delete _prices[LSP8Address][tokenId];
+    }
+
+    // Remove a LSP7 price from LSP8.
+    function _removeLSP8PriceByAddress(
+        address LSP8Address,
+        bytes32 tokenId,
+        address LSP7Address
+    )
+        internal
+    {
+        _prices[LSP8Address][tokenId].LSP7Addresses.remove(LSP7Address);
+        _prices[LSP8Address][tokenId].LSP7Amounts.remove(LSP7Address);
     }
 
     // -- Remove info about the sale and sale price.
@@ -225,7 +257,6 @@ contract LSP8MarketplaceStorage {
         bytes32 tokenId
     ) 
         internal
-        LSP8OnSale(LSP8Address, tokenId)
     {
         _removeLSP8Prices(LSP8Address, tokenId);
         _removeLSP8Sale(LSP8Address, tokenId);
@@ -241,8 +272,6 @@ contract LSP8MarketplaceStorage {
         bytes32 offerTokenId
     )
         internal
-        LSP8OnSale(LSP8Address, tokenId)
-        senderOwnsLSP8(LSP8Address, tokenId)
     {
         Offers storage _offer = _offers[LSP8Address][tokenId];
         _offer.LSP8Addresses.add(offerLSP8Address);

@@ -15,11 +15,6 @@ contract LSP8Marketplace is LSP8MarketplaceStorage {
 
     // --- User Functionality.
 
-    // Create a user.
-    function createUser () public {
-        _addUser(msg.sender);
-    }
-
     // Put LSP8 on sale.
     function putLSP8OnSale (
         address LSP8Address,
@@ -27,9 +22,13 @@ contract LSP8Marketplace is LSP8MarketplaceStorage {
         uint256 LYXAmount,
         address[] memory LSP7Address,
         uint256[] memory LSP7Amount
-    ) public {
+    )
+        public
+        senderOwnsLSP8(LSP8Address, tokenId)
+        LSP8NotOnSale(LSP8Address, tokenId)
+    {
         _addLYXPrice(LSP8Address, tokenId, LYXAmount);
-        _addLSP7Price(LSP8Address, tokenId, LSP7Address, LSP7Amount);
+        _addLSP7Prices(LSP8Address, tokenId, LSP7Address, LSP7Amount);
         _addLSP8Sale(LSP8Address, tokenId);
     }
 
@@ -37,33 +36,90 @@ contract LSP8Marketplace is LSP8MarketplaceStorage {
     function removeLSP8FromSale (
         address LSP8Address,
         bytes32 tokenId
-    ) public {
+    )
+        public
+        senderOwnsLSP8(LSP8Address, tokenId)
+        LSP8OnSale(LSP8Address, tokenId)
+    {
         _removeLSP8SaleAndPrice(LSP8Address, tokenId);
+    }
+
+    //Change LYX price.
+    function changeLYXPrice (
+        address LSP8Address,
+        bytes32 tokenId,
+        uint256 LYXAmount
+    )
+        public
+        senderOwnsLSP8(LSP8Address, tokenId)
+        LSP8OnSale(LSP8Address, tokenId)
+    {
+        _removeLYXPrice(LSP8Address, tokenId);
+        _addLYXPrice(LSP8Address, tokenId, LYXAmount);
+    }
+
+    //Change LSP7 price.
+    function changeLSP7Price (
+        address LSP8Address,
+        bytes32 tokenId,
+        address LSP7Address,
+        uint256 LSP7Amount
+    )
+        public
+        senderOwnsLSP8(LSP8Address, tokenId)
+        LSP8OnSale(LSP8Address, tokenId)
+        LSP7PriceDoesNotExist(LSP8Address, tokenId, LSP7Address)
+    {
+        _removeLSP8PriceByAddress(LSP8Address, tokenId, LSP7Address);
+        _addLYXPrice(LSP8Address, tokenId, LYXAmount);
+    }
+
+    //Add LSP7 price.
+    function addLSP7Price (
+        address LSP8Address,
+        bytes32 tokenId,
+        address LSP7Address,
+        uint256 LSP7Amount
+    )
+        public
+        senderOwnsLSP8(LSP8Address, tokenId)
+        LSP8OnSale(LSP8Address, tokenId)
+        LSP7PriceDoesExist(LSP8Address, tokenId, LSP7Address)
+    {
+        _addLYXPrice(LSP8Address, tokenId, LYXAmount);
     }
 
     // Buy LSP8 with LYX.
     function buyLSP8WithLYX (
         address LSP8Address,
         bytes32 tokenId
-    ) public payable
+    )
+        public
+        payable
         sendEnoughLYX(LSP8Address, tokenId)
+        LSP8OnSale(LSP8Address, tokenId)
     {
-        address LSP8Owner = ILSP8IdentifiableDigitalAsset(LSP8Address).tokenOwnerOf(tokenId);
-        address payable from = payable(LSP8Owner);
-        address to = msg.sender;
-        bool force = false;
-        bytes memory data = abi.encodeWithSignature(
-            "universalReceiver(bytes32 typeId, bytes memory data)",
-            keccak256("TOKEN_RECEIVE"),
-            abi.encodePacked(from, msg.sender, "1")
-        );
+        address payable LSP8Owner = payable(ILSP8IdentifiableDigitalAsset(LSP8Address).tokenOwnerOf(tokenId));
         uint price = _returnLYXPrice(LSP8Address, tokenId);
-        _removeLSP8SaleAndPrice(LSP8Address, tokenId);
+        
+        {        
+            _removeLSP8SaleAndPrice(LSP8Address, tokenId);
+        }
 
-        ILSP8IdentifiableDigitalAsset(LSP8Address)
-        .transfer(from, to, tokenId, force, data);
+        {
+            ILSP8IdentifiableDigitalAsset(LSP8Address)
+            .transfer(
+                LSP8Owner,
+                msg.sender,
+                tokenId,
+                false,
+                _returnLSPTransferData(LSP8Owner, msg.sender, 1)
+            );
+        }
 
-        from.transfer(price);
+        {
+            LSP8Owner.transfer(price);
+        }
     }
 
     // Buy LSP8 with LSP7.
@@ -75,6 +131,7 @@ contract LSP8Marketplace is LSP8MarketplaceStorage {
         public
         haveEnoughLSP7Balance(LSP8Address, tokenId, LSP7Address)
         sellerAcceptsToken(LSP8Address, tokenId, LSP7Address)
+        LSP8OnSale(LSP8Address, tokenId)
     {
         address LSP8Owner = ILSP8IdentifiableDigitalAsset(LSP8Address).tokenOwnerOf(tokenId);
         uint256 price = _returnLSP7PriceByAddress(LSP8Address, tokenId, LSP7Address);
