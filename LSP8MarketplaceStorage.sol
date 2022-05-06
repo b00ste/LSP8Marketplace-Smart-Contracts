@@ -46,7 +46,7 @@ contract LSP8MarketplaceStorage {
         _;
     }
 
-    modifier userOwnsLSP8(address LSP8Address, bytes32 tokenId) {
+    modifier senderOwnsLSP8(address LSP8Address, bytes32 tokenId) {
         require(
             ILSP8IdentifiableDigitalAsset(LSP8Address).tokenOwnerOf(tokenId) == msg.sender,
             "Sender doesn't own this LSP8."
@@ -125,10 +125,11 @@ contract LSP8MarketplaceStorage {
     )
         internal
         userExists
-        userOwnsLSP8(LSP8Address, tokenId)
+        senderOwnsLSP8(LSP8Address, tokenId)
         LSP8NotOnSale(LSP8Address, tokenId)
     {
         _sale[LSP8Address].add(tokenId);
+        ILSP8IdentifiableDigitalAsset(LSP8Address).authorizeOperator(address(this), tokenId);
     }
 
     // Remove sale.
@@ -138,10 +139,11 @@ contract LSP8MarketplaceStorage {
     )
         internal
         userExists
-        userOwnsLSP8(LSP8Address, tokenId)
+        senderOwnsLSP8(LSP8Address, tokenId)
         LSP8OnSale(LSP8Address, tokenId)
     {
         _sale[LSP8Address].remove(tokenId);
+        ILSP8IdentifiableDigitalAsset(LSP8Address).revokeOperator(address(this), tokenId);
     }
 
     // -- Price functionality
@@ -231,7 +233,43 @@ contract LSP8MarketplaceStorage {
 
     // -- LSP8 Offer functionality.
 
+    // Create an offer to trade LSP8 for LSP8
+    function _makeOffer(
+        address LSP8Address,
+        bytes32 tokenId,
+        address offerLSP8Address,
+        bytes32 offerTokenId
+    )
+        internal
+        LSP8OnSale(LSP8Address, tokenId)
+        senderOwnsLSP8(LSP8Address, tokenId)
+    {
+        Offers storage _offer = _offers[LSP8Address][tokenId];
+        _offer.LSP8Addresses.add(offerLSP8Address);
+        _offer.LSP8TokenIds.set(offerLSP8Address, uint(offerTokenId));
+    }
 
+    /**
+     * Return all offers. You will get 2 arrays.
+     * First array will return all offerLSP8Addresses.
+     * Second array will return all offerLSP8TokenIds.
+     * The arrays are ordered.
+     */
+    function _returnOffers(
+        address LSP8Address,
+        bytes32 tokenId
+    )
+        public
+        view
+        returns(address[] memory, bytes32[] memory)
+    {
+        Offers storage _offer = _offers[LSP8Address][tokenId];
+        bytes32[] memory LSP8TokenIds;
+        for (uint i = 0; i < _offer.LSP8Addresses.length(); i++) {
+            LSP8TokenIds[i] = bytes32(_offer.LSP8TokenIds.get(_offer.LSP8Addresses.at(i)));
+        }
+        return (_offer.LSP8Addresses.values(), LSP8TokenIds);
+    }
 
     // -- UniversalReciever data generator.
 

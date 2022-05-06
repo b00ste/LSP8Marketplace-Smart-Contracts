@@ -31,7 +31,6 @@ contract LSP8Marketplace is LSP8MarketplaceStorage {
         _addLYXPrice(LSP8Address, tokenId, LYXAmount);
         _addLSP7Price(LSP8Address, tokenId, LSP7Address, LSP7Amount);
         _addLSP8Sale(LSP8Address, tokenId);
-        ILSP8IdentifiableDigitalAsset(LSP8Address).authorizeOperator(address(this), tokenId);
     }
 
     // Remove LSP8 sale. Also removes all the prices for an LSP8.
@@ -40,7 +39,6 @@ contract LSP8Marketplace is LSP8MarketplaceStorage {
         bytes32 tokenId
     ) public {
         _removeLSP8SaleAndPrice(LSP8Address, tokenId);
-        ILSP8IdentifiableDigitalAsset(LSP8Address).revokeOperator(address(this), tokenId);
     }
 
     // Buy LSP8 with LYX.
@@ -75,7 +73,6 @@ contract LSP8Marketplace is LSP8MarketplaceStorage {
         address LSP7Address
     )
         public
-        payable
         haveEnoughLSP7Balance(LSP8Address, tokenId, LSP7Address)
         sellerAcceptsToken(LSP8Address, tokenId, LSP7Address)
     {
