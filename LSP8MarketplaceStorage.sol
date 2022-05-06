@@ -83,8 +83,7 @@ contract LSP8MarketplaceStorage {
         _;
     }
 
-    modifier transactionPossible(address LSP8Address, bytes32 tokenId, address LSP7Address) {
-        require(_sale[LSP8Address].contains(tokenId), "LSP8 is not on sale.");
+    modifier sellerAcceptsToken(address LSP8Address, bytes32 tokenId, address LSP7Address) {
         Prices storage _price = _prices[LSP8Address][tokenId];
         for (uint i = 0; i < _price.LSP7Addresses.length(); i++) {
             if (_price.LSP7Addresses.at(i) == LSP7Address) {
@@ -99,24 +98,49 @@ contract LSP8MarketplaceStorage {
     // -- User functionality.
 
     // Add user.
-    function _addUser(address newUser) internal {
+    function _addUser(
+        address newUser
+    ) 
+        internal
+        userDoesNotExist
+    {
         _users.add(newUser);
     }
 
     // Remove user.
-    function _removeUser(address newUser) internal {
+    function _removeUser(
+        address newUser
+    )
+        internal
+    {
         _users.remove(newUser);
     }
 
     // -- Sale functionality.
 
     // Create sale.
-    function _addLSP8Sale(address LSP8Address, bytes32 tokenId) internal {
+    function _addLSP8Sale(
+        address LSP8Address,
+        bytes32 tokenId
+    )
+        internal
+        userExists
+        userOwnsLSP8(LSP8Address, tokenId)
+        LSP8NotOnSale(LSP8Address, tokenId)
+    {
         _sale[LSP8Address].add(tokenId);
     }
 
     // Remove sale.
-    function _removeLSP8Sale(address LSP8Address, bytes32 tokenId) internal {
+    function _removeLSP8Sale(
+        address LSP8Address,
+        bytes32 tokenId
+    )
+        internal
+        userExists
+        userOwnsLSP8(LSP8Address, tokenId)
+        LSP8OnSale(LSP8Address, tokenId)
+    {
         _sale[LSP8Address].remove(tokenId);
     }
 
@@ -194,10 +218,20 @@ contract LSP8MarketplaceStorage {
 
     // -- Remove info about the sale and sale price.
 
-    function _removeLSP8SaleAndPrice(address LSP8Address, bytes32 tokenId) internal {
+    function _removeLSP8SaleAndPrice (
+        address LSP8Address,
+        bytes32 tokenId
+    ) 
+        internal
+        LSP8OnSale(LSP8Address, tokenId)
+    {
         _removeLSP8Prices(LSP8Address, tokenId);
         _removeLSP8Sale(LSP8Address, tokenId);
     }
+
+    // -- LSP8 Offer functionality.
+
+
 
     // -- UniversalReciever data generator.
 

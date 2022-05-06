@@ -16,7 +16,7 @@ contract LSP8Marketplace is LSP8MarketplaceStorage {
     // --- User Functionality.
 
     // Create a user.
-    function createUser() public userDoesNotExist {
+    function createUser () public {
         _addUser(msg.sender);
     }
 
@@ -27,12 +27,7 @@ contract LSP8Marketplace is LSP8MarketplaceStorage {
         uint256 LYXAmount,
         address[] memory LSP7Address,
         uint256[] memory LSP7Amount
-    )
-        public
-        userExists
-        userOwnsLSP8(LSP8Address, tokenId)
-        LSP8NotOnSale(LSP8Address, tokenId)
-    {
+    ) public {
         _addLYXPrice(LSP8Address, tokenId, LYXAmount);
         _addLSP7Price(LSP8Address, tokenId, LSP7Address, LSP7Amount);
         _addLSP8Sale(LSP8Address, tokenId);
@@ -40,22 +35,20 @@ contract LSP8Marketplace is LSP8MarketplaceStorage {
     }
 
     // Remove LSP8 sale. Also removes all the prices for an LSP8.
-    function removeLSP8FromSale (address LSP8Address, bytes32 tokenId)
-        public
-        userExists
-        userOwnsLSP8(LSP8Address, tokenId)
-        LSP8OnSale(LSP8Address, tokenId)
-    {
+    function removeLSP8FromSale (
+        address LSP8Address,
+        bytes32 tokenId
+    ) public {
         _removeLSP8SaleAndPrice(LSP8Address, tokenId);
         ILSP8IdentifiableDigitalAsset(LSP8Address).revokeOperator(address(this), tokenId);
     }
 
     // Buy LSP8 with LYX.
-    function buyLSP8WithLYX (address LSP8Address, bytes32 tokenId)
-        public
-        payable
+    function buyLSP8WithLYX (
+        address LSP8Address,
+        bytes32 tokenId
+    ) public payable
         sendEnoughLYX(LSP8Address, tokenId)
-        LSP8OnSale(LSP8Address, tokenId)
     {
         address LSP8Owner = ILSP8IdentifiableDigitalAsset(LSP8Address).tokenOwnerOf(tokenId);
         address payable from = payable(LSP8Owner);
@@ -84,7 +77,7 @@ contract LSP8Marketplace is LSP8MarketplaceStorage {
         public
         payable
         haveEnoughLSP7Balance(LSP8Address, tokenId, LSP7Address)
-        transactionPossible(LSP8Address, tokenId, LSP7Address)
+        sellerAcceptsToken(LSP8Address, tokenId, LSP7Address)
     {
         address LSP8Owner = ILSP8IdentifiableDigitalAsset(LSP8Address).tokenOwnerOf(tokenId);
         uint256 price = _returnLSP7PriceByAddress(LSP8Address, tokenId, LSP7Address);
