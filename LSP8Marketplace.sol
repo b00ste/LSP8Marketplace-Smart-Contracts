@@ -39,7 +39,7 @@ contract LSP8Marketplace is LSP8MarketplaceStorage {
         ILSP8IdentifiableDigitalAsset(LSP8Address).authorizeOperator(address(this), tokenId);
     }
 
-    // Remove LSP8 from sale
+    // Remove LSP8 sale. Also removes all the prices for an LSP8.
     function removeLSP8FromSale (address LSP8Address, bytes32 tokenId)
         public
         userExists
