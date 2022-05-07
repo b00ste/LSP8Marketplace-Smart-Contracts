@@ -3,16 +3,15 @@
 pragma solidity ^0.8.0;
 
 import {ILSP8IdentifiableDigitalAsset} from "https://github.com/lukso-network/lsp-smart-contracts/blob/develop/contracts/LSP8IdentifiableDigitalAsset/ILSP8IdentifiableDigitalAsset.sol";
-import {LSP8MarketplacePrice} from "./LSP8MarketplacePrice.sol";
-import {LSP8MarketplaceTrade} from "./LSP8MarketplaceTrade.sol";
-import {LSP8MarketplaceOffer} from "./LSP8MarketplaceOffer.sol";
+import {LSP8MarketplaceStorage} from "./LSP8MarketplaceStorage.sol";
+import {ILSP7DigitalAsset} from "https://github.com/lukso-network/lsp-smart-contracts/blob/develop/contracts/LSP7DigitalAsset/ILSP7DigitalAsset.sol";
 
 /**
- * @title LSP8Marketplace contract
+ * @title FamilyClothingLSP8Marketplace contract
  * @author Afteni Daniel (aka B00ste)
  */
 
-contract LSP8Marketplace is LSP8MarketplacePrice, LSP8MarketplaceOffer, LSP8MarketplaceTrade {
+contract LSP8Marketplace is LSP8MarketplaceStorage {
 
     // --- User Functionality.
 
@@ -72,7 +71,7 @@ contract LSP8Marketplace is LSP8MarketplacePrice, LSP8MarketplaceOffer, LSP8Mark
         LSP7PriceDoesNotExist(LSP8Address, tokenId, LSP7Address)
     {
         _removeLSP8PriceByAddress(LSP8Address, tokenId, LSP7Address);
-        _addLYXPrice(LSP8Address, tokenId, LSP7Amount);
+        _addLYXPrice(LSP8Address, tokenId, LYXAmount);
     }
 
     //Add LSP7 price.
@@ -87,7 +86,7 @@ contract LSP8Marketplace is LSP8MarketplacePrice, LSP8MarketplaceOffer, LSP8Mark
         LSP8OnSale(LSP8Address, tokenId)
         LSP7PriceDoesExist(LSP8Address, tokenId, LSP7Address)
     {
-        _addLYXPrice(LSP8Address, tokenId, LSP7Amount);
+        _addLYXPrice(LSP8Address, tokenId, LYXAmount);
     }
 
     // Buy LSP8 with LYX.
@@ -101,11 +100,26 @@ contract LSP8Marketplace is LSP8MarketplacePrice, LSP8MarketplaceOffer, LSP8Mark
         LSP8OnSale(LSP8Address, tokenId)
     {
         address payable LSP8Owner = payable(ILSP8IdentifiableDigitalAsset(LSP8Address).tokenOwnerOf(tokenId));
-        uint amount = _returnLYXPrice(LSP8Address, tokenId);
+        uint price = _returnLYXPrice(LSP8Address, tokenId);
         
-        _removeLSP8SaleAndPrice(LSP8Address, tokenId);
-        _transferLSP8(LSP8Address, LSP8Owner, msg.sender, tokenId, false, 1);
-        LSP8Owner.transfer(amount);
+        {        
+            _removeLSP8SaleAndPrice(LSP8Address, tokenId);
+        }
+
+        {
+            ILSP8IdentifiableDigitalAsset(LSP8Address)
+            .transfer(
+                LSP8Owner,
+                msg.sender,
+                tokenId,
+                false,
+                _returnLSPTransferData(LSP8Owner, msg.sender, 1)
+            );
+        }
+
+        {
+            LSP8Owner.transfer(price);
+        }
     }
 
     // Buy LSP8 with LSP7.
@@ -120,23 +134,34 @@ contract LSP8Marketplace is LSP8MarketplacePrice, LSP8MarketplaceOffer, LSP8Mark
         LSP8OnSale(LSP8Address, tokenId)
     {
         address LSP8Owner = ILSP8IdentifiableDigitalAsset(LSP8Address).tokenOwnerOf(tokenId);
-        uint256 amount = _returnLSP7PriceByAddress(LSP8Address, tokenId, LSP7Address);
+        uint256 price = _returnLSP7PriceByAddress(LSP8Address, tokenId, LSP7Address);
 
-        _removeLSP8SaleAndPrice(LSP8Address, tokenId);
-        _transferLSP7(LSP7Address, msg.sender, LSP8Owner, amount, false);
-        _transferLSP8(LSP8Address, LSP8Owner, msg.sender, tokenId, false, 1);
-    }
-
-    //Offer an LSP8 for an LSP8.
-    function offerLSP8ForLSP8 (
-        address LSP8Address,
-        bytes32 tokeId,
-        address offerLSP8Address,
-        bytes32 offerTokenId
-    )
-        public
-    {
+        {
+            _removeLSP8SaleAndPrice(LSP8Address, tokenId);
+        }
         
+        {
+            ILSP7DigitalAsset(LSP7Address).authorizeOperator(address(this), price);
+            ILSP7DigitalAsset(LSP7Address)
+            .transfer(
+                msg.sender,
+                LSP8Owner,
+                price,
+                false,
+                _returnLSPTransferData(LSP8Owner, msg.sender, 1)
+            );
+        }
+
+        {
+            ILSP8IdentifiableDigitalAsset(LSP8Address)
+            .transfer(
+                LSP8Owner,
+                msg.sender,
+                tokenId,
+                false,
+                _returnLSPTransferData(LSP8Owner, msg.sender, 1)
+            );
+        }
     }
     
 }
