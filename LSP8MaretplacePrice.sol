@@ -209,16 +209,4 @@ contract LSP8MarketplacePrice is LSP8MarketplaceSale {
         _prices[LSP8Address][tokenId].LSP7Amounts.remove(LSP7Address);
     }
 
-    // --- Remove info about the sale and sale price.
-
-    function _removeLSP8SaleAndPrice (
-        address LSP8Address,
-        bytes32 tokenId
-    ) 
-        internal
-    {
-        _removeLSP8Prices(LSP8Address, tokenId);
-        _removeLSP8Sale(LSP8Address, tokenId);
-    }
-
 }

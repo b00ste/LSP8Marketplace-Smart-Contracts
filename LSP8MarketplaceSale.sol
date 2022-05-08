@@ -2,8 +2,8 @@
 
 pragma solidity ^0.8.0;
 
-import {ILSP8IdentifiableDigitalAsset} from "https://github.com/lukso-network/lsp-smart-contracts/blob/develop/contracts/LSP8IdentifiableDigitalAsset/ILSP8IdentifiableDigitalAsset.sol";
-import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+import { ILSP8IdentifiableDigitalAsset } from "https://github.com/lukso-network/lsp-smart-contracts/blob/develop/contracts/LSP8IdentifiableDigitalAsset/ILSP8IdentifiableDigitalAsset.sol";
+import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 /**
  * @title LSP8MarketplaceSale contract
@@ -20,7 +20,10 @@ contract LSP8MarketplaceSale {
 
     // --- Modifiers.
 
-    modifier senderOwnsLSP8(address LSP8Address, bytes32 tokenId) {
+    modifier ownsLSP8 (
+        address LSP8Address,
+        bytes32 tokenId
+    ) {
         require(
             ILSP8IdentifiableDigitalAsset(LSP8Address).tokenOwnerOf(tokenId) == msg.sender,
             "Sender doesn't own this LSP8."
@@ -28,7 +31,10 @@ contract LSP8MarketplaceSale {
         _;
     }
 
-    modifier LSP8OnSale(address LSP8Address, bytes32 tokenId) {
+    modifier LSP8OnSale (
+        address LSP8Address,
+        bytes32 tokenId
+    ) {
         require(
             _sale[LSP8Address].contains(tokenId),
             "LSP8 is not on sale."
@@ -36,7 +42,10 @@ contract LSP8MarketplaceSale {
         _;
     }
 
-    modifier LSP8NotOnSale(address LSP8Address, bytes32 tokenId) {
+    modifier LSP8NotOnSale (
+        address LSP8Address,
+        bytes32 tokenId
+    ) {
         require(
             !_sale[LSP8Address].contains(tokenId),
             "LSP8 is on sale."
@@ -47,7 +56,7 @@ contract LSP8MarketplaceSale {
     // -- Sale functionality.
 
     // Create sale.
-    function _addLSP8Sale(
+    function _addLSP8Sale (
         address LSP8Address,
         bytes32 tokenId
     )
@@ -58,7 +67,7 @@ contract LSP8MarketplaceSale {
     }
 
     // Remove sale.
-    function _removeLSP8Sale(
+    function _removeLSP8Sale (
         address LSP8Address,
         bytes32 tokenId
     )

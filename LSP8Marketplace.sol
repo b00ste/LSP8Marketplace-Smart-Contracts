@@ -25,7 +25,7 @@ contract LSP8Marketplace is LSP8MarketplacePrice, LSP8MarketplaceOffer, LSP8Mark
         uint256[] memory LSP7Amount
     )
         public
-        senderOwnsLSP8(LSP8Address, tokenId)
+        ownsLSP8(LSP8Address, tokenId)
         LSP8NotOnSale(LSP8Address, tokenId)
     {
         _addLYXPrice(LSP8Address, tokenId, LYXAmount);
@@ -39,10 +39,12 @@ contract LSP8Marketplace is LSP8MarketplacePrice, LSP8MarketplaceOffer, LSP8Mark
         bytes32 tokenId
     )
         public
-        senderOwnsLSP8(LSP8Address, tokenId)
+        ownsLSP8(LSP8Address, tokenId)
         LSP8OnSale(LSP8Address, tokenId)
     {
-        _removeLSP8SaleAndPrice(LSP8Address, tokenId);
+        _removeLSP8Offers(LSP8Address, tokenId);
+        _removeLSP8Prices(LSP8Address, tokenId);
+        _removeLSP8Sale(LSP8Address, tokenId);
     }
 
     //Change LYX price.
@@ -52,7 +54,7 @@ contract LSP8Marketplace is LSP8MarketplacePrice, LSP8MarketplaceOffer, LSP8Mark
         uint256 LYXAmount
     )
         public
-        senderOwnsLSP8(LSP8Address, tokenId)
+        ownsLSP8(LSP8Address, tokenId)
         LSP8OnSale(LSP8Address, tokenId)
     {
         _removeLYXPrice(LSP8Address, tokenId);
@@ -67,7 +69,7 @@ contract LSP8Marketplace is LSP8MarketplacePrice, LSP8MarketplaceOffer, LSP8Mark
         uint256 LSP7Amount
     )
         public
-        senderOwnsLSP8(LSP8Address, tokenId)
+        ownsLSP8(LSP8Address, tokenId)
         LSP8OnSale(LSP8Address, tokenId)
         LSP7PriceDoesNotExist(LSP8Address, tokenId, LSP7Address)
     {
@@ -83,7 +85,7 @@ contract LSP8Marketplace is LSP8MarketplacePrice, LSP8MarketplaceOffer, LSP8Mark
         uint256 LSP7Amount
     )
         public
-        senderOwnsLSP8(LSP8Address, tokenId)
+        ownsLSP8(LSP8Address, tokenId)
         LSP8OnSale(LSP8Address, tokenId)
         LSP7PriceDoesExist(LSP8Address, tokenId, LSP7Address)
     {
@@ -103,7 +105,9 @@ contract LSP8Marketplace is LSP8MarketplacePrice, LSP8MarketplaceOffer, LSP8Mark
         address payable LSP8Owner = payable(ILSP8IdentifiableDigitalAsset(LSP8Address).tokenOwnerOf(tokenId));
         uint amount = _returnLYXPrice(LSP8Address, tokenId);
         
-        _removeLSP8SaleAndPrice(LSP8Address, tokenId);
+        _removeLSP8Offers(LSP8Address, tokenId);
+        _removeLSP8Prices(LSP8Address, tokenId);
+        _removeLSP8Sale(LSP8Address, tokenId);
         _transferLSP8(LSP8Address, LSP8Owner, msg.sender, tokenId, false, 1);
         LSP8Owner.transfer(amount);
     }
@@ -121,22 +125,63 @@ contract LSP8Marketplace is LSP8MarketplacePrice, LSP8MarketplaceOffer, LSP8Mark
     {
         address LSP8Owner = ILSP8IdentifiableDigitalAsset(LSP8Address).tokenOwnerOf(tokenId);
         uint256 amount = _returnLSP7PriceByAddress(LSP8Address, tokenId, LSP7Address);
-
-        _removeLSP8SaleAndPrice(LSP8Address, tokenId);
+ 
+        _removeLSP8Offers(LSP8Address, tokenId);
+        _removeLSP8Prices(LSP8Address, tokenId);
+        _removeLSP8Sale(LSP8Address, tokenId);
         _transferLSP7(LSP7Address, msg.sender, LSP8Owner, amount, false);
         _transferLSP8(LSP8Address, LSP8Owner, msg.sender, tokenId, false, 1);
     }
 
-    //Offer an LSP8 for an LSP8.
+    // Offer an LSP8 for an LSP8.
     function offerLSP8ForLSP8 (
         address LSP8Address,
-        bytes32 tokeId,
+        bytes32 tokenId,
         address offerLSP8Address,
         bytes32 offerTokenId
     )
         public
+        LSP8OnSale(LSP8Address, tokenId)
+        ownsLSP8(offerLSP8Address, offerTokenId)
+        offerDoesNotExist(offerLSP8Address, offerTokenId)
     {
-        
+        _makeLSP8Offer(LSP8Address, tokenId, offerLSP8Address, offerTokenId);
+    }
+
+    // Remove an LSP8 offer for LSP8.
+    function removeLSP8OfferForLSP8 (
+        address LSP8Address,
+        bytes32 tokenId,
+        address offerLSP8Address,
+        bytes32 offerTokenId
+    )
+        public
+        LSP8OnSale(LSP8Address, tokenId)
+        ownsLSP8(offerLSP8Address, offerTokenId)
+        offerExists(offerLSP8Address, offerTokenId)
+    {
+        _removeLSP8Offer(LSP8Address, tokenId, offerLSP8Address, offerTokenId);
+    }
+
+    // Accept an LSP8 offer for LSP8.
+    function acceptLSP8OfferForLSP8 (
+        address LSP8Address,
+        bytes32 tokenId,
+        address offerLSP8Address,
+        bytes32 offerTokenId
+    )
+        public
+        LSP8OnSale(LSP8Address, tokenId)
+        ownsLSP8(LSP8Address, tokenId)
+        offerExistsForThisLSP8(LSP8Address, tokenId, offerLSP8Address, offerTokenId)
+    {
+        address offerLSP8Owner = ILSP8IdentifiableDigitalAsset(offerLSP8Address).tokenOwnerOf(offerTokenId);
+
+        _removeLSP8Offers(LSP8Address, tokenId);
+        _removeLSP8Prices(LSP8Address, tokenId);
+        _removeLSP8Sale(LSP8Address, tokenId);
+        _transferLSP8(LSP8Address, msg.sender, offerLSP8Owner, tokenId, false, 1);
+        _transferLSP8(offerLSP8Address, offerLSP8Owner, msg.sender, offerTokenId, false, 1);
     }
     
 }
