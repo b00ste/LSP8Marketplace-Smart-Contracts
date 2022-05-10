@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.0;
 
-import { ILSP7DigitalAsset } from "https://github.com/lukso-network/lsp-smart-contracts/blob/develop/contracts/LSP7DigitalAsset/ILSP7DigitalAsset.sol";
+import { ILSP7DigitalAsset } from "/home/b00ste/Projects/lsp-smart-contracts/contracts/LSP7DigitalAsset/ILSP7DigitalAsset.sol";
 import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import { EnumerableMap } from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
 import { LSP8MarketplaceSale } from "./LSP8MarketplaceSale.sol";
@@ -139,14 +139,14 @@ contract LSP8MarketplacePrice is LSP8MarketplaceSale {
     function _addLSP7PriceByAddress (
         address LSP8Address,
         bytes32 tokenId,
-        address LSP7Addresses,
+        address LSP7Address,
         uint256 LSP7Amount
     )
         internal
     {
         Prices storage _price = _prices[LSP8Address][tokenId];
-        _price.LSP7Addresses.add(LSP7Addresses);    
-        _price.LSP7Amounts.set(LSP7Addresses, LSP7Amount);
+        _price.LSP7Addresses.add(LSP7Address);    
+        _price.LSP7Amounts.set(LSP7Address, LSP7Amount);
     }
 
     /**
@@ -187,18 +187,8 @@ contract LSP8MarketplacePrice is LSP8MarketplaceSale {
         return _prices[LSP8Address][tokenId].LSP7Amounts.get(LSP7Address);
     }
 
-    // Removes all LSP7 prices from an LSP8.
-    function _removeLSP8Prices (
-        address LSP8Address,
-        bytes32 tokenId
-    )
-        internal
-    {
-        delete _prices[LSP8Address][tokenId];
-    }
-
     // Remove a LSP7 price from an LSP8.
-    function _removeLSP8PriceByAddress (
+    function _removeLSP7PriceByAddress (
         address LSP8Address,
         bytes32 tokenId,
         address LSP7Address
@@ -207,6 +197,16 @@ contract LSP8MarketplacePrice is LSP8MarketplaceSale {
     {
         _prices[LSP8Address][tokenId].LSP7Addresses.remove(LSP7Address);
         _prices[LSP8Address][tokenId].LSP7Amounts.remove(LSP7Address);
+    }
+
+    // Removes all LSP7 prices from an LSP8.
+    function _removeLSP8Prices (
+        address LSP8Address,
+        bytes32 tokenId
+    )
+        internal
+    {
+        delete _prices[LSP8Address][tokenId];
     }
 
 }

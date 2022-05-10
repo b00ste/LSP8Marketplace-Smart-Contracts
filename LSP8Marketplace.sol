@@ -2,43 +2,69 @@
 
 pragma solidity ^0.8.0;
 
-import {ILSP8IdentifiableDigitalAsset} from "https://github.com/lukso-network/lsp-smart-contracts/blob/develop/contracts/LSP8IdentifiableDigitalAsset/ILSP8IdentifiableDigitalAsset.sol";
-import {LSP8MarketplacePrice} from "./LSP8MarketplacePrice.sol";
-import {LSP8MarketplaceTrade} from "./LSP8MarketplaceTrade.sol";
-import {LSP8MarketplaceOffer} from "./LSP8MarketplaceOffer.sol";
+import { ILSP8IdentifiableDigitalAsset } from "/home/b00ste/Projects/lsp-smart-contracts/contracts/LSP8IdentifiableDigitalAsset/ILSP8IdentifiableDigitalAsset.sol";
+import { LSP8MarketplaceOffer } from "./LSP8MarketplaceOffer.sol";
+import { LSP8MarketplacePrice } from "./LSP8MarketplacePrice.sol";
+import { LSP8MarketplaceTrade } from "./LSP8MarketplaceTrade.sol";
 
 /**
  * @title LSP8Marketplace contract
  * @author Afteni Daniel (aka B00ste)
  */
 
-contract LSP8Marketplace is LSP8MarketplacePrice, LSP8MarketplaceOffer, LSP8MarketplaceTrade {
+contract LSP8Marketplace is LSP8MarketplaceOffer, LSP8MarketplacePrice, LSP8MarketplaceTrade {
 
     // --- User Functionality.
 
-    // Put LSP8 on sale.
+    /**
+     * Put an NFT on sale.
+     * Allowed token standards: LSP8 (refference: "https://github.com/lukso-network/lsp-smart-contracts/contracts/LSP8IdentifiableDigitalAsset")
+     *
+     * @param LSP8Address Address of the LSP8 token contract.
+     * @param tokenId Token id of the `LSP8Address` NFT that will be put on sale.
+     * @param LYXAmount Buyout amount of LYX coins.
+     * @param LSP7Addresses Addresses of the LSP7 token contracts allowed for buyout.
+     * @param LSP7Amounts Buyout amounts in `LSP7Addresses` tokens.
+     * 
+     * @notice For information about `ownsLSP8` and `LSP8NotOnSale`
+     * modifiers and about `_addLSP8Sale` function got to 
+     * LSP8MarketplaceSale smart contract.
+     * For information about `_addLYXPrice` and `_addLSP7Prices`
+     * functions check the LSP8MArketplacePrice smart contract.
+     */
     function putLSP8OnSale (
         address LSP8Address,
         bytes32 tokenId,
         uint256 LYXAmount,
-        address[] memory LSP7Address,
-        uint256[] memory LSP7Amount
+        address[] memory LSP7Addresses,
+        uint256[] memory LSP7Amounts
     )
-        public
+        external
         ownsLSP8(LSP8Address, tokenId)
         LSP8NotOnSale(LSP8Address, tokenId)
     {
-        _addLYXPrice(LSP8Address, tokenId, LYXAmount);
-        _addLSP7Prices(LSP8Address, tokenId, LSP7Address, LSP7Amount);
         _addLSP8Sale(LSP8Address, tokenId);
+        _addLYXPrice(LSP8Address, tokenId, LYXAmount);
+        _addLSP7Prices(LSP8Address, tokenId, LSP7Addresses, LSP7Amounts);
     }
 
-    // Remove LSP8 sale. Also removes all the prices for an LSP8.
+    /**
+     * Remove LSP8 sale. Also removes all the prices attached to the LSP8.
+     * Allowed token standards: LSP8 (refference: "https://github.com/lukso-network/lsp-smart-contracts/contracts/LSP8IdentifiableDigitalAsset")
+     *
+     * @param LSP8Address Address of the LSP8 token contract.
+     * @param tokenId Token id of the `LSP8Address` NFT that is on sale.
+     *
+     * @notice For information about `ownsLSP8` and `LSP8OnSale`
+     * modifiers and about `_removeLSP8Sale` check the LSP8MarketplaceSale smart contract.
+     * For information about `_removeLSP8Prices` check the LSP8MArketplacePrice smart contract.
+     * For information about `_removeLSP8Offers` check the LSP8MArketplaceOffers smart contract.
+     */
     function removeLSP8FromSale (
         address LSP8Address,
         bytes32 tokenId
     )
-        public
+        external
         ownsLSP8(LSP8Address, tokenId)
         LSP8OnSale(LSP8Address, tokenId)
     {
@@ -47,13 +73,24 @@ contract LSP8Marketplace is LSP8MarketplacePrice, LSP8MarketplaceOffer, LSP8Mark
         _removeLSP8Sale(LSP8Address, tokenId);
     }
 
-    //Change LYX price.
+    /**
+     * Change LYX price for a specific LSP8.
+     *
+     * @param LSP8Address Address of the LSP8 token contract.
+     * @param tokenId Token id of the `LSP8Address` NFT that is on sale.
+     * @param LYXAmount buyout amount for the NFT on sale.
+     *
+     * @notice For information about `ownsLSP8` and `LSP8OnSale` modifiers
+     * check the LSP8MarketplaceSale smart contract.
+     * For information about `_removeLYXPrice` and `_addLYXPrice` functions
+     * check the LSP8MarketplacePrice smart contract.
+     */
     function changeLYXPrice (
         address LSP8Address,
         bytes32 tokenId,
         uint256 LYXAmount
     )
-        public
+        external
         ownsLSP8(LSP8Address, tokenId)
         LSP8OnSale(LSP8Address, tokenId)
     {
@@ -61,20 +98,32 @@ contract LSP8Marketplace is LSP8MarketplacePrice, LSP8MarketplaceOffer, LSP8Mark
         _addLYXPrice(LSP8Address, tokenId, LYXAmount);
     }
 
-    //Change LSP7 price.
+    /**
+     * Change LSP7 price for a specific LSP8.
+     *
+     * @param LSP8Address Address of the LSP8 token contract.
+     * @param tokenId Token id of the `LSP8Address` NFT that is on sale.
+     * @param LSP7Address LSP7 address of an allowed token for buyout of the NFT.
+     * @param LSP7Amount New buyout amount in `LSP7Address` token for the NFT on sale.
+     *
+     * @notice For information about `ownsLSP8` and `LSP8OnSale` modifiers
+     * check the LSP8MarketplaceSale smart contract.
+     * For information about `_removeLYXPrice` and `_addLYXPrice` functions
+     * check the LSP8MarketplacePrice smart contract.
+     */
     function changeLSP7Price (
         address LSP8Address,
         bytes32 tokenId,
         address LSP7Address,
         uint256 LSP7Amount
     )
-        public
+        external
         ownsLSP8(LSP8Address, tokenId)
         LSP8OnSale(LSP8Address, tokenId)
         LSP7PriceDoesNotExist(LSP8Address, tokenId, LSP7Address)
     {
-        _removeLSP8PriceByAddress(LSP8Address, tokenId, LSP7Address);
-        _addLYXPrice(LSP8Address, tokenId, LSP7Amount);
+        _removeLSP7PriceByAddress(LSP8Address, tokenId, LSP7Address);
+        _addLSP7PriceByAddress(LSP8Address, tokenId, LSP7Address, LSP7Amount);
     }
 
     //Add LSP7 price.
@@ -84,7 +133,7 @@ contract LSP8Marketplace is LSP8MarketplacePrice, LSP8MarketplaceOffer, LSP8Mark
         address LSP7Address,
         uint256 LSP7Amount
     )
-        public
+        external
         ownsLSP8(LSP8Address, tokenId)
         LSP8OnSale(LSP8Address, tokenId)
         LSP7PriceDoesExist(LSP8Address, tokenId, LSP7Address)
@@ -97,7 +146,7 @@ contract LSP8Marketplace is LSP8MarketplacePrice, LSP8MarketplaceOffer, LSP8Mark
         address LSP8Address,
         bytes32 tokenId
     )
-        public
+        external
         payable
         sendEnoughLYX(LSP8Address, tokenId)
         LSP8OnSale(LSP8Address, tokenId)
@@ -118,7 +167,7 @@ contract LSP8Marketplace is LSP8MarketplacePrice, LSP8MarketplaceOffer, LSP8Mark
         bytes32 tokenId,
         address LSP7Address
     )
-        public
+        external
         haveEnoughLSP7Balance(LSP8Address, tokenId, LSP7Address)
         sellerAcceptsToken(LSP8Address, tokenId, LSP7Address)
         LSP8OnSale(LSP8Address, tokenId)
@@ -140,7 +189,7 @@ contract LSP8Marketplace is LSP8MarketplacePrice, LSP8MarketplaceOffer, LSP8Mark
         address offerLSP8Address,
         bytes32 offerTokenId
     )
-        public
+        external
         LSP8OnSale(LSP8Address, tokenId)
         ownsLSP8(offerLSP8Address, offerTokenId)
         offerDoesNotExist(offerLSP8Address, offerTokenId)
@@ -155,7 +204,7 @@ contract LSP8Marketplace is LSP8MarketplacePrice, LSP8MarketplaceOffer, LSP8Mark
         address offerLSP8Address,
         bytes32 offerTokenId
     )
-        public
+        external
         LSP8OnSale(LSP8Address, tokenId)
         ownsLSP8(offerLSP8Address, offerTokenId)
         offerExists(offerLSP8Address, offerTokenId)
@@ -170,7 +219,7 @@ contract LSP8Marketplace is LSP8MarketplacePrice, LSP8MarketplaceOffer, LSP8Mark
         address offerLSP8Address,
         bytes32 offerTokenId
     )
-        public
+        external
         LSP8OnSale(LSP8Address, tokenId)
         ownsLSP8(LSP8Address, tokenId)
         offerExistsForThisLSP8(LSP8Address, tokenId, offerLSP8Address, offerTokenId)
