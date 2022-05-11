@@ -10,6 +10,8 @@ import { LSP8MarketplaceTrade } from "./LSP8MarketplaceTrade.sol";
 /**
  * @title LSP8Marketplace contract
  * @author Afteni Daniel (aka B00ste)
+ *
+* @notice For reference I will assume LSP8 is the same as NFT.
  */
 
 contract LSP8Marketplace is LSP8MarketplaceOffer, LSP8MarketplacePrice, LSP8MarketplaceTrade {
@@ -26,11 +28,8 @@ contract LSP8Marketplace is LSP8MarketplaceOffer, LSP8MarketplacePrice, LSP8Mark
      * @param LSP7Addresses Addresses of the LSP7 token contracts allowed for buyout.
      * @param LSP7Amounts Buyout amounts in `LSP7Addresses` tokens.
      * 
-     * @notice For information about `ownsLSP8` and `LSP8NotOnSale`
-     * modifiers and about `_addLSP8Sale` function got to 
-     * LSP8MarketplaceSale smart contract.
-     * For information about `_addLYXPrice` and `_addLSP7Prices`
-     * functions check the LSP8MArketplacePrice smart contract.
+     * @notice For information about `ownsLSP8` and `LSP8NotOnSale` modifiers and about `_addLSP8Sale` function got to LSP8MarketplaceSale smart contract.
+     * For information about `_addLYXPrice` and `_addLSP7Prices` functions check the LSP8MArketplacePrice smart contract.
      */
     function putLSP8OnSale (
         address LSP8Address,
@@ -55,8 +54,7 @@ contract LSP8Marketplace is LSP8MarketplaceOffer, LSP8MarketplacePrice, LSP8Mark
      * @param LSP8Address Address of the LSP8 token contract.
      * @param tokenId Token id of the `LSP8Address` NFT that is on sale.
      *
-     * @notice For information about `ownsLSP8` and `LSP8OnSale`
-     * modifiers and about `_removeLSP8Sale` check the LSP8MarketplaceSale smart contract.
+     * @notice For information about `ownsLSP8` and `LSP8OnSale` modifiers and about `_removeLSP8Sale` check the LSP8MarketplaceSale smart contract.
      * For information about `_removeLSP8Prices` check the LSP8MArketplacePrice smart contract.
      * For information about `_removeLSP8Offers` check the LSP8MArketplaceOffers smart contract.
      */
@@ -80,10 +78,8 @@ contract LSP8Marketplace is LSP8MarketplaceOffer, LSP8MarketplacePrice, LSP8Mark
      * @param tokenId Token id of the `LSP8Address` NFT that is on sale.
      * @param LYXAmount buyout amount for the NFT on sale.
      *
-     * @notice For information about `ownsLSP8` and `LSP8OnSale` modifiers
-     * check the LSP8MarketplaceSale smart contract.
-     * For information about `_removeLYXPrice` and `_addLYXPrice` functions
-     * check the LSP8MarketplacePrice smart contract.
+     * @notice For information about `ownsLSP8` and `LSP8OnSale` modifiers check the LSP8MarketplaceSale smart contract.
+     * For information about `_removeLYXPrice` and `_addLYXPrice` functions check the LSP8MarketplacePrice smart contract.
      */
     function changeLYXPrice (
         address LSP8Address,
@@ -106,10 +102,9 @@ contract LSP8Marketplace is LSP8MarketplaceOffer, LSP8MarketplacePrice, LSP8Mark
      * @param LSP7Address LSP7 address of an allowed token for buyout of the NFT.
      * @param LSP7Amount New buyout amount in `LSP7Address` token for the NFT on sale.
      *
-     * @notice For information about `ownsLSP8` and `LSP8OnSale` modifiers
-     * check the LSP8MarketplaceSale smart contract.
-     * For information about `_removeLYXPrice` and `_addLYXPrice` functions
-     * check the LSP8MarketplacePrice smart contract.
+     * @notice For information about `ownsLSP8` and `LSP8OnSale` modifiers check the LSP8MarketplaceSale smart contract.
+     * For information about `LSP7PriceDoesNotExist` modifier check LSP8MarketplacePrice smart contract.
+     * For information about `removeLSP7PriceByAddress` and `_addLSP7PriceByAddress` methods check the LSP8MarketplacePrice smart contract.
      */
     function changeLSP7Price (
         address LSP8Address,
@@ -126,7 +121,19 @@ contract LSP8Marketplace is LSP8MarketplaceOffer, LSP8MarketplacePrice, LSP8Mark
         _addLSP7PriceByAddress(LSP8Address, tokenId, LSP7Address, LSP7Amount);
     }
 
-    //Add LSP7 price.
+    /**
+     * Add LSP7 price for a specific LSP8.
+     *
+     * @param LSP8Address Address of the LSP8 token contract.
+     * @param tokenId Token id of the `LSP8Address` NFT that is on sale.
+     * @param LSP7Address LSP7 address of an allowed token for buyout of the NFT.
+     * @param LSP7Amount New buyout amount in `LSP7Address` token for the NFT on sale.
+     *
+     * @notice For information about `ownsLSP8` and `LSP8OnSale` modifiers
+     * check the LSP8MarketplaceSale smart contract.
+     * For information about `LSP7PriceDoesExist` modifier and `_addLSP7PriceByAddress` method
+     * check the LSP8MarketplacePrice smart contract.
+     */
     function addLSP7Price (
         address LSP8Address,
         bytes32 tokenId,
@@ -138,10 +145,22 @@ contract LSP8Marketplace is LSP8MarketplaceOffer, LSP8MarketplacePrice, LSP8Mark
         LSP8OnSale(LSP8Address, tokenId)
         LSP7PriceDoesExist(LSP8Address, tokenId, LSP7Address)
     {
-        _addLYXPrice(LSP8Address, tokenId, LSP7Amount);
+        _addLSP7PriceByAddress(LSP8Address, tokenId, LSP7Address, LSP7Amount);
     }
 
-    // Buy LSP8 with LYX.
+    /**
+     * Buy LSP8 with LYX.
+     *
+     * @param LSP8Address Address of the LSP8 token contract.
+     * @param tokenId Token id of the `LSP8Address` NFT that is on sale.
+     *
+     * @notice For information about `LSP8OnSale` modifier and `_removeLSP8Sale` method
+     * check the LSP8MarketplaceSale smart contract.
+     * For information about `sendEnoughLYX` modifier and `_removeLSP8Prices`, `_returnLYXPrice` methods
+     * check the LSP8MarketplacePrice smart contract.
+     * For information about `_removeLSP8Offers` method check the LSP8MarketplaceOffer smart contract.
+     * For information about `_transferLSP8` method check the LSP8MarketplaceTrade smart contract. 
+     */
     function buyLSP8WithLYX (
         address LSP8Address,
         bytes32 tokenId
@@ -161,7 +180,20 @@ contract LSP8Marketplace is LSP8MarketplaceOffer, LSP8MarketplacePrice, LSP8Mark
         LSP8Owner.transfer(amount);
     }
 
-    // Buy LSP8 with LSP7.
+    /**
+     * Buy LSP8 with LSP7.
+     *
+     * @param LSP8Address Address of the LSP8 token contract.
+     * @param tokenId Token id of the `LSP8Address` LSP8 that is on sale.
+     * @param LSP7Address Address of the token which is allowed for buyout.
+     *
+     * @notice For information about `LSP8OnSale` modifier check the LSP8MarketplaceSale smart contract.
+     * For information about `haveEnoughLSP7Balance` and `sellerAcceptsToken` modifiers
+     * and `_removeLSP8Prices` method check the LSP8MarketplacePrice smart contract.
+     * For information about `_removeLSP8Offers` method check the LSP8MarketplaceOffer smart contract.
+     * For information about `_transferLSP8` and `_transferLSP7` methods
+     * check the LSP8MarketplaceTrade smart contract. 
+     */
     function buyLSP8WithLSP7 (
         address LSP8Address,
         bytes32 tokenId,
@@ -182,7 +214,19 @@ contract LSP8Marketplace is LSP8MarketplaceOffer, LSP8MarketplacePrice, LSP8Mark
         _transferLSP8(LSP8Address, LSP8Owner, msg.sender, tokenId, false, 1);
     }
 
-    // Offer an LSP8 for an LSP8.
+    /**
+     * Offer LSP8 in exchange for an LSP8 that is on sale.
+     *
+     * @param LSP8Address Address of the LSP8 token contract.
+     * @param tokenId Token id of the `LSP8Address` LSP8 that is on sale.
+     * @param offerLSP8Address Address of the LSP8 offered in exchange.
+     * @param offerTokenId Token id of the `offerLSP8Address` LSP8 that is offered.
+     *
+     * @notice For information about `LSP8OnSale` and `ownsLSP8` modifier
+     * check the LSP8MarketplaceSale smart contract.
+     * For information about `offerDoesNotExist` modifier and `_makeLSP8Offer` method
+     * check the LSP8MarketplaceOffer smart contract.
+     */
     function offerLSP8ForLSP8 (
         address LSP8Address,
         bytes32 tokenId,
@@ -197,7 +241,19 @@ contract LSP8Marketplace is LSP8MarketplaceOffer, LSP8MarketplacePrice, LSP8Mark
         _makeLSP8Offer(LSP8Address, tokenId, offerLSP8Address, offerTokenId);
     }
 
-    // Remove an LSP8 offer for LSP8.
+    /**
+     * Remove LSP8 from the offers of a certain LSP8.
+     *
+     * @param LSP8Address Address of the LSP8 token contract.
+     * @param tokenId Token id of the `LSP8Address` LSP8 that is on sale.
+     * @param offerLSP8Address Address of the LSP8 that is to be removed from offers.
+     * @param offerTokenId Token id of the `offerLSP8Address` LSP8 that is to be removed.
+     *
+     * @notice For information about `LSP8OnSale` and `ownsLSP8` modifier
+     * check the LSP8MarketplaceSale smart contract.
+     * For information about `offerExists` modifier and `_removeLSP8Offer` method
+     * check the LSP8MarketplaceOffer smart contract.
+     */
     function removeLSP8OfferForLSP8 (
         address LSP8Address,
         bytes32 tokenId,
@@ -212,7 +268,23 @@ contract LSP8Marketplace is LSP8MarketplaceOffer, LSP8MarketplacePrice, LSP8Mark
         _removeLSP8Offer(LSP8Address, tokenId, offerLSP8Address, offerTokenId);
     }
 
-    // Accept an LSP8 offer for LSP8.
+    /**
+     * Accept LSP8 offer for trade.
+     *
+     * @param LSP8Address Address of the LSP8 token contract.
+     * @param tokenId Token id of the `LSP8Address` LSP8 that is on sale.
+     * @param offerLSP8Address Address of the LSP8 that is to be accepted.
+     * @param offerTokenId Token id of the `offerLSP8Address` LSP8 that is to be accepted.
+     *
+     * @notice For information about `LSP8OnSale`, `ownsLSP8` modifier
+     * and `_removeLSP8Sale` method check the LSP8MarketplaceSale smart contract.
+     * For information about `offerExistsForThisLSP8` modifier and `_removeLSP8Offers` method
+     * check the LSP8MarketplaceOffer smart contract.
+     * For information about `_removeLSP8Prices` method check
+     * the LSP8MarketplacePrice smrt contract.
+     * For information about `_transferLSP8` method check
+     * the LSP8MarketplaceTrade smart contract.
+     */
     function acceptLSP8OfferForLSP8 (
         address LSP8Address,
         bytes32 tokenId,
