@@ -18,7 +18,73 @@ contract LSP8MarketplaceSale {
 
     mapping (address => EnumerableSet.Bytes32Set) private _sale;
 
+    /**
+     * Allows sellers to choose if they want to have LYX, LSP7 or LSP8 offers.
+     *
+     * @notice `_allowedOffers[LSP8Address][0]` is LYX allowance.
+     * `_allowedOffers[LSP8Address][1]` is LSP7 allowance.
+     * `_allowedOffers[LSP8Address][2]` is LSP8 allowance.
+     */
+    mapping (address => mapping (bytes32 => bool[3])) _allowedOffers;
+
     // --- Modifiers.
+
+    /**
+     * Modifier checks if LYX offers are allowed.
+     * 
+     * @param LSP8Address LSP8 address.
+     * @param tokenId LSP8 token id.
+     *
+     * @notice Checks the `_allowedOffers` array at index 0 if true.
+     */
+    modifier allowsLYXOffers (
+        address LSP8Address,
+        bytes32 tokenId
+    ) {
+        require(
+            _allowedOffers[LSP8Address][tokenId][0],
+            "User dosen't allow LYX offers"
+        );
+        _;
+    }
+
+    /**
+     * Modifier checks if LSP7 offers are allowed.
+     * 
+     * @param LSP8Address LSP8 address.
+     * @param tokenId LSP8 token id.
+     *
+     * @notice Checks the `_allowedOffers` array at index 1 if true.
+     */
+    modifier allowsLSP7Offers (
+        address LSP8Address,
+        bytes32 tokenId
+    ) {
+        require(
+            _allowedOffers[LSP8Address][tokenId][1],
+            "User dosen't allow LSP7 offers"
+        );
+        _;
+    }
+
+    /**
+     * Modifier checks if LSP8 offers are allowed.
+     * 
+     * @param LSP8Address LSP8 address.
+     * @param tokenId LSP8 token id.
+     *
+     * @notice Checks the `_allowedOffers` array at index 2 if true.
+     */
+    modifier allowsLSP8Offers (
+        address LSP8Address,
+        bytes32 tokenId
+    ) {
+        require(
+            _allowedOffers[LSP8Address][tokenId][2],
+            "User dosen't allow LSP8 offers"
+        );
+        _;
+    }
 
     /**
      * Modifier checks if the sender owns the LSP8 that is to be put on sale.
@@ -90,14 +156,17 @@ contract LSP8MarketplaceSale {
      * After that it calls the `LSP8Address` smart contract and uses the
      * `authorizeOperator` method to allow this smart contract to transfer
      * the LSP8 for the user, if the sale gets matched.
+     * Adds an allowed offers array.
      */
     function _addLSP8Sale (
         address LSP8Address,
-        bytes32 tokenId
+        bytes32 tokenId,
+        bool[3] memory allowedOffers
     )
         internal
     {
         _sale[LSP8Address].add(tokenId);
+        _allowedOffers[LSP8Address][tokenId] = allowedOffers;
         ILSP8IdentifiableDigitalAsset(LSP8Address).authorizeOperator(address(this), tokenId);
     }
 
@@ -112,6 +181,7 @@ contract LSP8MarketplaceSale {
      * After that it calls the `LSP8Address` smart contract and uses the
      * `revokeOperator` method to remove the allowence of this smart contract
      * to transfer the LSP8 for the user, if the sale gets matched.
+     * Removes the allowed offers array.
      */
     function _removeLSP8Sale (
         address LSP8Address,
@@ -120,7 +190,28 @@ contract LSP8MarketplaceSale {
         internal
     {
         _sale[LSP8Address].remove(tokenId);
+        delete _allowedOffers[LSP8Address][tokenId];
         ILSP8IdentifiableDigitalAsset(LSP8Address).revokeOperator(address(this), tokenId);
+    }
+
+    /**
+     * Returns the allowance array for LSP8.
+     *
+     * @param LSP8Address LSP8 address.
+     * @param tokenId LSP8 token id.
+     *
+     * @return An array of allowances. At index 0 is LYX allowance,
+     * at index 1 is LSP7 allowance and at index 2 is LSP8 allowance.
+     */
+    function _returnOfferAlowance (
+        address LSP8Address,
+        bytes32 tokenId
+    )
+        public
+        view
+        returns(bool[3] memory)
+    {
+        return _allowedOffers[LSP8Address][tokenId];
     }
 
 }

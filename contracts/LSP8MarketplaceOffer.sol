@@ -2,6 +2,7 @@
 
 pragma solidity ^0.8.0;
 
+import { ILSP7DigitalAsset } from "/home/b00ste/Projects/lsp-smart-contracts/contracts/LSP7DigitalAsset/ILSP7DigitalAsset.sol";
 import { ILSP8IdentifiableDigitalAsset } from "/home/b00ste/Projects/lsp-smart-contracts/contracts/LSP8IdentifiableDigitalAsset/ILSP8IdentifiableDigitalAsset.sol";
 import { EnumerableSet } from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 import { EnumerableMap } from "@openzeppelin/contracts/utils/structs/EnumerableMap.sol";
@@ -16,6 +17,8 @@ contract LSP8MarketplaceOffer is LSP8MarketplaceSale {
 
     using EnumerableSet for EnumerableSet.AddressSet;
     using EnumerableSet for EnumerableSet.Bytes32Set;
+    using EnumerableSet for EnumerableSet.UintSet;
+    using EnumerableMap for EnumerableMap.AddressToUintMap;
 
     // --- Storage
 
@@ -23,6 +26,13 @@ contract LSP8MarketplaceOffer is LSP8MarketplaceSale {
     struct Offers {
         EnumerableSet.AddressSet LSP8Addresses;
         mapping (address => EnumerableSet.Bytes32Set) LSP8TokenIds;
+
+        EnumerableSet.AddressSet LSP7OfferCreators;
+        mapping(address => EnumerableSet.AddressSet) LSP7Addresses;
+        mapping(address => EnumerableMap.AddressToUintMap) LSP7Amounts;
+
+        EnumerableSet.AddressSet LYXOfferCreators;
+        EnumerableMap.AddressToUintMap LYXOffers;
     }
 
     // --- Modifiers.
@@ -37,7 +47,7 @@ contract LSP8MarketplaceOffer is LSP8MarketplaceSale {
      * method `isOperatorFor` which returns a boolean value. If there are no offers using this LSP8
      * the return falue must be false.
      */
-    modifier offerDoesNotExist (
+    modifier LSP8OfferDoesNotExist (
         address offerLSP8Address, 
         bytes32 offerTokenId
     ) {
@@ -57,7 +67,7 @@ contract LSP8MarketplaceOffer is LSP8MarketplaceSale {
      * method `isOperatorFor` which returns a boolean value. If there is an offer with this LSP8
      * the return falue must be true.
      */
-    modifier offerExists (
+    modifier LSP8OfferExists (
         address offerLSP8Address, 
         bytes32 offerTokenId
     ) {
@@ -79,7 +89,7 @@ contract LSP8MarketplaceOffer is LSP8MarketplaceSale {
      * @notice Once called the method checks if there is an offer to `LSP8Address` and `tokenId`
      * from `offerLSP8Address` and `offerTokenId`.
      */
-    modifier offerExistsForThisLSP8 (
+    modifier LSP8OfferExistsForThisLSP8 (
         address LSP8Address,
         bytes32 tokenId,
         address offerLSP8Address, 
@@ -91,7 +101,68 @@ contract LSP8MarketplaceOffer is LSP8MarketplaceSale {
         ); _;
     }
 
-    // --- LSP8 Offer functionality.
+    /**
+     * Checks that sender has enough LSP7 tokens for creating an offer.
+     *
+     * @param LSP7Address LSP7 address.
+     * @param LSP7Amount LSP7 address.
+     *
+     * @notice Checks that sender's balance in `LSP7Address`
+     * is equal or greater than the `LSP7Amount`.
+     */
+    modifier haveEnoughLSP7BalanceForOffer (
+        address LSP7Address,
+        uint256 LSP7Amount
+    ) {
+        require(
+            ILSP7DigitalAsset(LSP7Address).balanceOf(msg.sender) > LSP7Amount,
+            "Sender doesn't have enough token balance."
+        ); _;
+    }
+
+    /**
+     * Checks that offer creator has enough LSP7 tokens.
+     *
+     * @param LSP7Address LSP7 address.
+     * @param offerCreator LSP7 offer creator.
+     *
+     * @notice Checks that `offerCreator`'s balance in `LSP7Address`
+     * is equal or greater than the offered amount.
+     */
+    modifier offerCreatorHasEnoughLSP7Balance (
+        address LSP8Address,
+        bytes32 tokenId,
+        address LSP7Address,
+        address offerCreator 
+    ) {
+        require(
+            ILSP7DigitalAsset(LSP7Address).balanceOf(msg.sender) >
+            _offers[LSP8Address][tokenId].LSP7Amounts[offerCreator].get(LSP7Address),
+            "Sender doesn't have enough token balance."
+        ); _;
+    }
+
+    /**
+     * Checks if the offer exists adn is owned by the sender.
+     *
+     * @param LSP8Address LSP8 address.
+     * @param tokenId LSP8 token id.
+     * @param LSP7Address LSP7 address.
+     */
+    modifier LSP7OfferExists (
+        address LSP8Address,
+        bytes32 tokenId,
+        address LSP7Address,
+        address offerCreator
+    ) {
+        require(
+            _offers[LSP8Address][tokenId].LSP7Amounts[offerCreator].contains(LSP7Address),
+            "This offer doesn't exist or you aren't the owner."
+        );
+        _;
+    }
+
+    // --- Offer functionality.
 
     /**
      * Create an offer to trade LSP8 for LSP8
@@ -148,24 +219,6 @@ contract LSP8MarketplaceOffer is LSP8MarketplaceSale {
     }
 
     /**
-     * Remove all offers of a LSP8.
-     * 
-     * @param LSP8Address The address of the LSP8 that will have the offers removed.
-     * @param tokenId Token id of the `LSP8Address` LSP8.
-     *
-     * @notice Once this method is called all the offers that exist for the `LSP8Address`
-     * and `tokenId`.
-     */
-    function _removeLSP8Offers (
-        address LSP8Address,
-        bytes32 tokenId
-    )
-        internal
-    {
-        delete _offers[LSP8Address][tokenId];
-    }
-
-    /**
      * Return all the addresses that are offered for an LSP8.
      * 
      * @param LSP8Address The address of the LSP8.
@@ -212,9 +265,229 @@ contract LSP8MarketplaceOffer is LSP8MarketplaceSale {
         Offers storage _offer = _offers[LSP8Address][tokenId];
         bytes32[] memory LSP8TokenIds;
         for (uint i = 0; i < _offer.LSP8TokenIds[offerLSP8Address].length(); i++) {
-            LSP8TokenIds[i] = bytes32(_offer.LSP8TokenIds[offerLSP8Address].at(i));
+            LSP8TokenIds[i] = _offer.LSP8TokenIds[offerLSP8Address].at(i);
         }
         return LSP8TokenIds;
+    }
+
+    /**
+     * Create LSP7 offer.
+     *
+     * @param LSP8Address LSP8 address.
+     * @param tokenId LSP8 token id.
+     * @param LSP7Address Address of the LSP7 offer.
+     * @param LSP7Amount The amount of tokens offered. 
+     *
+     * @notice Creates an offer and saves the address and the amount of tokens offered.
+     * If the creator of that offer has no more offers, it saves his address to
+     * the array as well.
+     */
+    function _makeLSP7Offer (
+        address LSP8Address,
+        bytes32 tokenId,
+        address LSP7Address,
+        uint256 LSP7Amount
+    )
+        internal
+    {
+        Offers storage _offer = _offers[LSP8Address][tokenId];
+        if (_offer.LSP7Amounts[msg.sender].contains(LSP7Address)) {
+            _offer.LSP7Amounts[msg.sender].remove(LSP7Address);
+            _offer.LSP7Amounts[msg.sender].set(LSP7Address, LSP7Amount);
+        }
+        else {
+            _offer.LSP7Addresses[msg.sender].add(LSP7Address);
+            _offer.LSP7Amounts[msg.sender].set(LSP7Address, LSP7Amount); 
+        }
+        ILSP7DigitalAsset(LSP7Address).authorizeOperator(address(this), LSP7Amount);
+        if (_offer.LSP7Addresses[msg.sender].length() > 0) {
+            _offer.LSP7OfferCreators.add(msg.sender);
+        }
+    }
+
+    /**
+     * Remove LSP7 offer.
+     *
+     * @param LSP8Address LSP8 address.
+     * @param tokenId LSP8 token id.
+     * @param LSP7Address Address of the LSP7 offer.
+     *
+     * @notice Removes an offer address and the amount of tokens offered.
+     * If the creator of that offer has no more offers, it removes his address from
+     * the array as well.
+     */
+    function _removeLSP7Offer (
+        address LSP8Address,
+        bytes32 tokenId,
+        address LSP7Address
+    )
+        internal
+    {
+        Offers storage _offer = _offers[LSP8Address][tokenId];
+        _offer.LSP7Addresses[msg.sender].remove(LSP7Address);
+        _offer.LSP7Amounts[msg.sender].remove(LSP7Address);
+        ILSP7DigitalAsset(LSP7Address).revokeOperator(address(this));
+        if (_offer.LSP7Addresses[msg.sender].length() == 0) {
+            _offer.LSP7OfferCreators.remove(msg.sender);
+        }
+    }
+
+    /**
+     * Return LSP7 offer creators.
+     *
+     * @param LSP8Address LSP8 address.
+     * @param tokenId LSP8 token id.
+     *
+     * @return An array of addresses of the LSP7 offer creators.
+     */
+    function _returnLSP7OfferCreators (
+        address LSP8Address,
+        bytes32 tokenId
+    )
+        public
+        view
+        returns(address[] memory)
+    {
+        return _offers[LSP8Address][tokenId].LSP7OfferCreators.values();
+    }
+
+    /**
+     * return LSP7 offers by offer creators.
+     *
+     * @param LSP8Address LSP8 address.
+     * @param tokenId LSP8 token id.
+     * @param offersCreator Address of the owner of the LSP7 offers.
+     *
+     * @return Two arrays, first with LSP7 addresses
+     * second with LSP7 amount.
+     */
+    function _returnLSP7OffersByCreators (
+        address LSP8Address,
+        bytes32 tokenId,
+        address offersCreator
+    )
+        public
+        view
+        returns(address[] memory, uint256[] memory)
+    {
+        Offers storage _offer = _offers[LSP8Address][tokenId];
+        uint256[] memory LSP7Amounts;
+        for (uint i; i < _offer.LSP7Addresses[offersCreator].length(); i++) {
+            LSP7Amounts[i] = _offer.LSP7Amounts[offersCreator].get(_offer.LSP7Addresses[offersCreator].at(i));
+        }
+        return (_offer.LSP7Addresses[offersCreator].values(), LSP7Amounts);
+    }
+
+    /**
+     * Returns LSP7 offer amount.
+     *
+     * @param LSP8Address LSP8 address.
+     * @param tokenId LSP8 token id.
+     * @param LSP7Address LSP7 address.
+     * @param offerCreator Address of the owner of the LSP7 offers.
+     *
+     * @return LSP7 offer amount
+     */
+    function _returnLSP7OfferAmount (
+        address LSP8Address,
+        bytes32 tokenId,
+        address LSP7Address,
+        address offerCreator
+    )
+        public
+        view
+        returns(uint256)
+    {
+        return _offers[LSP8Address][tokenId].LSP7Amounts[offerCreator].get(LSP7Address);
+    }   
+
+    /**
+     * Create a LYX offer.
+     *
+     * @param LSP8Address LSP8 address
+     * @param tokenId LSP8 token id
+     * @param amount The amount of LYX offered. 
+     *
+     * @notice Creates an offer and saves the amount of tokens offered.
+     * Saves his address to the array as well.
+     */
+    function _makeLYXOffer (
+        address LSP8Address,
+        bytes32 tokenId,
+        uint256 amount
+    )
+        internal
+    {
+        Offers storage _offer = _offers[LSP8Address][tokenId];
+        if (_offer.LYXOffers.contains(msg.sender)) {
+            _offer.LYXOffers.remove(msg.sender);
+            _offer.LYXOffers.set(msg.sender, amount);
+        }
+        else {
+            _offer.LYXOfferCreators.add(msg.sender);
+            _offer.LYXOffers.set(msg.sender, amount);
+        }
+    }
+
+    /**
+     * Remove a LYX offer.
+     *
+     * @param LSP8Address LSP8 address
+     * @param tokenId LSP8 token id
+     *
+     * @notice Removes an offer by deleting the offer creator 
+     * and the amount of LYX ofLYX offered.
+     */
+    function _removeLYXOffer (
+        address LSP8Address,
+        bytes32 tokenId
+    )
+        internal
+    {
+        _offers[LSP8Address][tokenId].LYXOffers.remove(msg.sender);
+    }
+
+    /**
+     * Returns LYX offers.
+     *
+     * @param LSP8Address LSP8 address
+     * @param tokenId LSP8 token id 
+     *
+     * @return Two arrays first contains the addresses of the LYX offers creators
+     * and second array contains the amounts of LYX offered.
+     */
+    function _returnLYXOffers (
+        address LSP8Address,
+        bytes32 tokenId
+    )
+        public
+        view
+        returns(address[] memory, uint[] memory)
+    {
+        Offers storage _offer = _offers[LSP8Address][tokenId];
+        uint[] memory LYXAmounts;
+        for (uint i; i < _offer.LYXOfferCreators.length(); i++) {
+            LYXAmounts[i] = _offer.LYXOffers.get(_offer.LYXOfferCreators.at(i));
+        }
+
+        return (_offers[LSP8Address][tokenId].LYXOfferCreators.values(), LYXAmounts);
+    }
+
+    /**
+     * Remove all offers of a LSP8.
+     * 
+     * @param LSP8Address The address of the LSP8 that will have the offers removed.
+     * @param tokenId Token id of the `LSP8Address` LSP8.
+     *
+     * @notice Removes all the offers that exist for the `LSP8Address` with `tokenId`.
+     */
+    function _removeOffers (
+        address LSP8Address,
+        bytes32 tokenId
+    )
+        internal
+    {
+        delete _offers[LSP8Address][tokenId];
     }
 
 }
