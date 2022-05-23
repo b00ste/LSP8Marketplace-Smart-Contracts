@@ -28,7 +28,7 @@ contract LSP8Marketplace is LSP8MarketplaceOffer, LSP8MarketplacePrice, LSP8Mark
      * @param LSP7Addresses Addresses of the LSP7 token contracts allowed for buyout.
      * @param LSP7Amounts Buyout amounts in `LSP7Addresses` tokens.
      * 
-     * @notice For information about `ownsLSP8` and `LSP8NotOnSale` modifiers and about `_addLSP8Sale` function got to LSP8MarketplaceSale smart contract.
+     * @notice For information about `ownsLSP8` and `LSP8NotOnSale` modifiers and about `_addLSP8Sale` function check the LSP8MarketplaceSale smart contract.
      * For information about `_addLYXPrice` and `_addLSP7Prices` functions check the LSP8MArketplacePrice smart contract.
      */
     function putLSP8OnSale (
