@@ -41,10 +41,10 @@ contract LSP8MarketplaceOffer is LSP8MarketplaceSale {
      * Modifier checks if there are no offers with this LSP8.
      * 
      * @param offerLSP8Address The address of the LSP8.
-     * @param offerTokenId Token id of the `LSP8Address` LSP8 that is about to be checked.
+     * @param offerTokenId Token id of the `LSP8Address` LSP8 being checked.
      *
-     * @notice Once called the smart contract calls the `offerLSP8Address` smart contract's
-     * method `isOperatorFor` which returns a boolean value. If there are no offers using this LSP8
+     * @notice Once called, the smart contract calls the `offerLSP8Address` smart contract's
+     * method `isOperatorFor` which returns a boolean value. If there are no offers using this LSP8,
      * the return falue must be false.
      */
     modifier LSP8OfferDoesNotExist (
@@ -61,10 +61,10 @@ contract LSP8MarketplaceOffer is LSP8MarketplaceSale {
      * Modifier checks if there are offers with this LSP8.
      * 
      * @param offerLSP8Address The address of the LSP8.
-     * @param offerTokenId Token id of the `LSP8Address` LSP8 that is about to be checked.
+     * @param offerTokenId Token id of the `LSP8Address` LSP8 being checked.
      *
-     * @notice Once called the smart contract calls the `offerLSP8Address` smart contract's
-     * method `isOperatorFor` which returns a boolean value. If there is an offer with this LSP8
+     * @notice Once called, the smart contract calls the `offerLSP8Address` smart contract's
+     * method `isOperatorFor` which returns a boolean value. If there is an offer with this LSP8,
      * the return falue must be true.
      */
     modifier LSP8OfferExists (
@@ -82,11 +82,11 @@ contract LSP8MarketplaceOffer is LSP8MarketplaceSale {
      * with the `offerLSP8Address` and `offerTokenId`.
      * 
      * @param LSP8Address The address of the LSP8.
-     * @param tokenId Token id of the `LSP8Address` LSP8 that is about to be checked.
-     * @param offerLSP8Address The address of the offer LSP8.
+     * @param tokenId Token id of the `LSP8Address` LSP8 being checked.
+     * @param offerLSP8Address The address of the offered LSP8.
      * @param offerTokenId Token id of the `offerLSP8Address` LSP8 that is about to be checked.
      *
-     * @notice Once called the method checks if there is an offer to `LSP8Address` and `tokenId`
+     * @notice Once called, the method checks if there is an offer to `LSP8Address` and `tokenId`
      * from `offerLSP8Address` and `offerTokenId`.
      */
     modifier LSP8OfferExistsForThisLSP8 (
@@ -102,13 +102,13 @@ contract LSP8MarketplaceOffer is LSP8MarketplaceSale {
     }
 
     /**
-     * Checks that sender has enough LSP7 tokens for creating an offer.
+     * Checks if the sender has enough LSP7 tokens for creating an offer.
      *
      * @param LSP7Address LSP7 address.
      * @param LSP7Amount LSP7 address.
      *
-     * @notice Checks that sender's balance in `LSP7Address`
-     * is equal or greater than the `LSP7Amount`.
+     * @notice Checks if the sender's balance in `LSP7Address`
+     * is equal to or greater than the `LSP7Amount`.
      */
     modifier haveEnoughLSP7BalanceForOffer (
         address LSP7Address,
@@ -121,13 +121,13 @@ contract LSP8MarketplaceOffer is LSP8MarketplaceSale {
     }
 
     /**
-     * Checks that offer creator has enough LSP7 tokens.
+     * Checks if the offer creator has enough LSP7 tokens.
      *
      * @param LSP7Address LSP7 address.
      * @param offerCreator LSP7 offer creator.
      *
-     * @notice Checks that `offerCreator`'s balance in `LSP7Address`
-     * is equal or greater than the offered amount.
+     * @notice Checks if the `offerCreator`'s balance in `LSP7Address`
+     * is equal to or greater than the offered amount.
      */
     modifier offerCreatorHasEnoughLSP7Balance (
         address LSP8Address,
@@ -143,7 +143,7 @@ contract LSP8MarketplaceOffer is LSP8MarketplaceSale {
     }
 
     /**
-     * Checks if the offer exists adn is owned by the sender.
+     * Checks if the offer exists and is owned by the sender.
      *
      * @param LSP8Address LSP8 address.
      * @param tokenId LSP8 token id.
@@ -172,10 +172,10 @@ contract LSP8MarketplaceOffer is LSP8MarketplaceSale {
      * @param offerLSP8Address The address of the LSP8 that will be offered in exchange.
      * @param offerTokenId Token id of the `offerLSP8Address` LSP8.
      *
-     * @notice Once this method is called the `offerLSP8Address` will be added to an
+     * @notice Once this method is called, the `offerLSP8Address` will be added to an
      * array of addresses that contains the addresses of all the LSP8s offered for exchange.
-     * After that the method creates an array for the `offerLSP8Address` which keeps track
-     * of all the token ids that are offered in exchange to `LSP8Address`+`tokenId`.
+     * After that, the method creates an array for the `offerLSP8Address` which keeps track
+     * of all the token ids offered in exchange for `LSP8Address`+`tokenId`.
      */
     function _makeLSP8Offer (
         address LSP8Address,
@@ -199,9 +199,9 @@ contract LSP8MarketplaceOffer is LSP8MarketplaceSale {
      * @param offerLSP8Address The address of the LSP8 that will be removed from offers.
      * @param offerTokenId Token id of the `offerLSP8Address` LSP8.
      *
-     * @notice Once this method is called the `offerLSP8Address` will be removed from an
+     * @notice Once this method is called, the `offerLSP8Address` will be removed from an
      * array of addresses that contains the addresses of all the LSP8s offered for exchange.
-     * After that the method removes the `offerTokenId` from the array of token ids
+     * After that, the method removes the `offerTokenId` from the array of token ids
      * from `offerLSP8Address` which keeps track of all the token ids that are offered
      * in exchange to `LSP8Address`+`tokenId`.
      */
@@ -227,7 +227,7 @@ contract LSP8MarketplaceOffer is LSP8MarketplaceSale {
      * @return An array of addresses.
      *
      * @notice This method returns an array containing all the addresses
-     * that are registred as trade offers for a specific `LSP8Address` and `tokenId`.
+     * registred as trade offers for a specific `LSP8Address` and `tokenId`.
      */
     function _returnLSP8OfferAddresses (
         address LSP8Address,
@@ -352,14 +352,14 @@ contract LSP8MarketplaceOffer is LSP8MarketplaceSale {
     }
 
     /**
-     * return LSP7 offers by offer creators.
+     * Return LSP7 offers by offer creators.
      *
      * @param LSP8Address LSP8 address.
      * @param tokenId LSP8 token id.
      * @param offersCreator Address of the owner of the LSP7 offers.
      *
-     * @return Two arrays, first with LSP7 addresses
-     * second with LSP7 amount.
+     * @return Two arrays, the first with LSP7 addresses
+     * and the second with LSP7 amount.
      */
     function _returnLSP7OffersByCreators (
         address LSP8Address,
@@ -408,8 +408,8 @@ contract LSP8MarketplaceOffer is LSP8MarketplaceSale {
      * @param tokenId LSP8 token id
      * @param amount The amount of LYX offered. 
      *
-     * @notice Creates an offer and saves the amount of tokens offered.
-     * Saves his address to the array as well.
+     * @notice Creates an offer, saves the amount of tokens offered,
+     * and saves their address to the array.
      */
     function _makeLYXOffer (
         address LSP8Address,
@@ -436,7 +436,7 @@ contract LSP8MarketplaceOffer is LSP8MarketplaceSale {
      * @param tokenId LSP8 token id
      *
      * @notice Removes an offer by deleting the offer creator 
-     * and the amount of LYX ofLYX offered.
+     * and the amount of LYX offered.
      */
     function _removeLYXOffer (
         address LSP8Address,
@@ -453,8 +453,8 @@ contract LSP8MarketplaceOffer is LSP8MarketplaceSale {
      * @param LSP8Address LSP8 address
      * @param tokenId LSP8 token id 
      *
-     * @return Two arrays first contains the addresses of the LYX offers creators
-     * and second array contains the amounts of LYX offered.
+     * @return Two arrays. The first contains the addresses of the LYX offers creators
+     * and the second contains the amounts of LYX offered.
      */
     function _returnLYXOffers (
         address LSP8Address,
