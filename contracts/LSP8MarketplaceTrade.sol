@@ -22,7 +22,7 @@ import { LSP8MarketplaceSale } from "./LSP8MarketplaceSale.sol";
      * @param to The receiver of the LSP7/LSP8
      * @param amount Amount of LSP7/LSP8 tokens sent. 
      *
-     * @return A bytes variable used for transfer data.
+     * @return A bytes variable used for transfer data..
      */
     function _returnLSPTransferData (
         address from,
